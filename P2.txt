@@ -1,0 +1,31 @@
+const int gsrPin = A0;
+
+int thresholdLow = 300;   // adjust based on calibration
+int thresholdHigh = 600;
+
+void setup() {
+  Serial.begin(115200);
+  Serial.println("GSR Monitoring Started...");
+}
+
+void loop() {
+
+  int gsrValue = analogRead(gsrPin);
+
+  // Print raw value
+  Serial.print("GSR Value: ");
+  Serial.print(gsrValue);
+
+  // Simple stress classification
+  if (gsrValue < thresholdLow) {
+    Serial.println("  --> Relaxed");
+  } 
+  else if (gsrValue >= thresholdLow && gsrValue <= thresholdHigh) {
+    Serial.println("  --> Normal");
+  } 
+  else {
+    Serial.println("  --> Stressed");
+  }
+
+  delay(100);
+}
