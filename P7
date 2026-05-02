@@ -1,0 +1,98 @@
+##P7: Deep Learning for Cancer Detection with Transfer Learning
+
+##1. Importing the Dataset
+
+from google.colab import files
+files.upload() #importing kaggle.json
+
+!mkdir -p ~/.kaggle
+!cp kaggle.json ~/.kaggle/
+!chmod 600 ~/.kaggle/kaggle.json
+#Downloading dataset
+!kaggle datasets download -d deeppythonist/brain-tumor-mri-dataset
+#Unzip
+!unzip brain-tumor-mri-dataset.zip
+
+##2. Importing Libraries
+
+import tensorflow as tf
+from tensorflow.keras import layers, models
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+
+##3. Load Dataset
+
+train_dir = '/content/train'
+test_dir = '/content/test'
+img_size = 128
+batch_size = 32
+
+train_data = tf.keras.preprocessing.image_dataset_from_directory(
+train_dir,
+image_size=(img_size, img_size),
+batch_size=batch_size
+)
+
+test_data = tf.keras.preprocessing.image_dataset_from_directory(
+test_dir,
+image_size=(img_size, img_size),
+batch_size=batch_size
+)
+
+##4. Normalize Data
+
+normalization_layer = layers.Rescaling(1./255)
+train_data = train_data.map(lambda x, y: (normalization_layer(x), y))
+test_data = test_data.map(lambda x, y: (normalization_layer(x), y))
+
+##5. Loading Pre-trained model
+
+from tensorflow.keras.applications import MobileNetV2
+base_model = MobileNetV2(
+    input_shape=(128, 128, 3),
+    include_top=False,
+    weights='imagenet' )
+
+##6. Freeze base model
+
+base_model.trainable = False
+
+##7. Add custom layers
+
+model = models.Sequential([
+    base_model,
+    layers.GlobalAveragePooling2D(),
+    layers.Dense(128, activation='relu'),
+    layers.Dropout(0.5),
+    layers.Dense(4, activation='softmax') ])
+
+##8. Compiling CNN Model
+
+model.compile(
+    optimizer='adam',
+    loss='sparse_categorical_crossentropy',
+    metrics=['accuracy'] )
+
+##9. Training Model
+
+history = model.fit(train_data, epochs=5, validation_data=test_data)
+
+##10. Evaluating Model
+
+loss, accuracy = model.evaluate(test_data)
+print("Test Accuracy:", accuracy)
+print("Test Loss:", loss)
+
+##11. Plotting Accuracy Graphs
+
+plt.plot(history.history['accuracy'], label='Training Accuracy')
+plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
+
+plt.xlabel('Epochs')
+plt.ylabel('Accuracy')
+plt.title('Training vs Validation Accuracy')
+
+plt.legend()
+plt.grid(True)
+plt.show()
