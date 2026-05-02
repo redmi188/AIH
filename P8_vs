@@ -1,0 +1,116 @@
+import cv2
+import numpy as np
+import tensorflow as tf
+
+# ----------------------------
+# Load model
+# ----------------------------
+model = tf.keras.models.load_model(
+    r"C:\Users\rampa\Downloads\gesture_model.keras"
+)
+
+class_names = ['fist', 'palm', 'point']
+
+# ----------------------------
+# Webcam
+# ----------------------------
+cap = cv2.VideoCapture(0)
+
+if not cap.isOpened():
+    print("Error: Webcam not found")
+    exit()
+
+# ----------------------------
+# Smoothing buffer (fix flickering)
+# ----------------------------
+prev_label = ""
+smooth_count = 0
+
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        break
+
+    frame = cv2.flip(frame, 1)
+    h, w, _ = frame.shape
+
+    # ----------------------------
+    # ROI BOX
+    # ----------------------------
+    box_size = 300
+    x1 = w // 2 - box_size // 2
+    y1 = h // 2 - box_size // 2
+    x2 = x1 + box_size
+    y2 = y1 + box_size
+
+    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+
+    roi = frame[y1:y2, x1:x2]
+
+    # ----------------------------
+    # Preprocess
+    # ----------------------------
+    img = cv2.resize(roi, (224, 224))
+    img = img.astype("float32") / 255.0
+    img = np.expand_dims(img, axis=0)
+
+    # ----------------------------
+    # Prediction
+    # ----------------------------
+    predictions = model.predict(img, verbose=0)
+    class_index = np.argmax(predictions)
+    confidence = np.max(predictions)
+
+    label = class_names[class_index]
+
+    # ----------------------------
+    # Smooth prediction (fix flicker issue)
+    # ----------------------------
+    if label == prev_label:
+        smooth_count += 1
+    else:
+        smooth_count = 0
+        prev_label = label
+
+    # Only update label if stable for a few frames
+    if smooth_count < 3:
+        display_label = prev_label
+    else:
+        display_label = label
+
+    # ----------------------------
+    # Show label + confidence
+    # ----------------------------
+    text = f"{display_label} ({confidence*100:.2f}%)"
+
+    cv2.putText(frame, text, (30, 50),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                1, (0, 255, 0), 2)
+
+    # ----------------------------
+    # Show confidence bar
+    # ----------------------------
+    bar_x = 30
+    bar_y = 80
+    bar_width = int(confidence * 200)
+
+    cv2.rectangle(frame, (bar_x, bar_y),
+                  (bar_x + 200, bar_y + 20),
+                  (255, 255, 255), 2)
+
+    cv2.rectangle(frame, (bar_x, bar_y),
+                  (bar_x + bar_width, bar_y + 20),
+                  (0, 255, 0), -1)
+
+    # ----------------------------
+    # Show window
+    # ----------------------------
+    cv2.imshow("Gesture Recognition", frame)
+
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
+
+AIH
