@@ -1,0 +1,132 @@
+## P8: AI-Based Vision-Control System for Surgical Robots and Intelligent Prosthetics
+
+Ram Passi (TY-MTRX, 2300601018)
+
+##1. Import Dataset
+
+from google.colab import files
+files.upload() #importing kaggle.json
+
+!mkdir -p ~/.kaggle
+!cp kaggle.json ~/.kaggle/
+!chmod 600 ~/.kaggle/kaggle.json
+!kaggle datasets download -d gti-upm/leapgestrecog
+!unzip leapgestrecog.zip
+
+import os
+import shutil
+
+label_map = {
+    '01_palm': 'palm',
+    '03_fist': 'fist',
+    '06_index': 'point'
+}
+
+source_dir = '/content/leapGestRecog'
+target_dir = '/content/filtered_data'
+
+os.makedirs(target_dir, exist_ok=True)
+
+for person in os.listdir(source_dir):
+    person_path = os.path.join(source_dir, person)
+
+    if not os.path.isdir(person_path):
+        continue
+
+    for original_label, new_label in label_map.items():
+        src_path = os.path.join(person_path, original_label)
+
+        if not os.path.exists(src_path):
+            continue
+
+        dst_path = os.path.join(target_dir, new_label)
+        os.makedirs(dst_path, exist_ok=True)
+
+        for img_name in os.listdir(src_path):
+            src_file = os.path.join(src_path, img_name)
+            dst_file = os.path.join(dst_path, img_name)
+            shutil.copy(src_file, dst_file)
+
+print("Dataset prepared:", list(label_map.values()))
+
+import os
+print(os.listdir('filtered_data'))
+
+import tensorflow as tf
+
+img_size = 224
+batch_size = 32
+
+data = tf.keras.preprocessing.image_dataset_from_directory(
+    '/content/filtered_data',
+    image_size=(img_size, img_size),
+    batch_size=batch_size,
+    validation_split=0.2,
+    subset="training",
+    seed=123
+)
+
+val_data = tf.keras.preprocessing.image_dataset_from_directory(
+    '/content/filtered_data',
+    image_size=(img_size, img_size),
+    batch_size=batch_size,
+    validation_split=0.2,
+    subset="validation",
+    seed=123
+)
+
+class_names = data.class_names
+print(class_names)
+
+from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
+import tensorflow as tf
+
+AUTOTUNE = tf.data.AUTOTUNE
+
+# Apply preprocessing + optimize pipeline
+data = data.map(
+    lambda x, y: (preprocess_input(x), y)
+).prefetch(buffer_size=AUTOTUNE)
+
+val_data = val_data.map(
+    lambda x, y: (preprocess_input(x), y)
+).prefetch(buffer_size=AUTOTUNE)
+
+from tensorflow.keras.applications import MobileNetV2
+from tensorflow.keras import layers, models
+
+# Load pretrained MobileNetV2
+base_model = MobileNetV2(
+    input_shape=(224, 224, 3),
+    include_top=False,
+    weights='imagenet'
+)
+
+# Freeze base model
+base_model.trainable = False
+
+# Build model
+model = models.Sequential([
+    base_model,
+    layers.GlobalAveragePooling2D(),
+    layers.BatchNormalization(),
+    layers.Dense(128, activation='relu'),
+    layers.Dropout(0.5),
+    layers.Dense(3, activation='softmax')  # 3 classes: palm, fist, point
+])
+
+model.compile(
+    optimizer='adam',
+    loss='sparse_categorical_crossentropy',
+    metrics=['accuracy']
+)
+
+history = model.fit(
+    data,
+    validation_data=val_data,
+    epochs=10
+)
+
+model.save("gesture_model.keras")
+
+model.save_weights("gesture.weights.h5")
