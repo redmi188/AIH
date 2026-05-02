@@ -1,0 +1,91 @@
+# Enhancing Medical Image Analysis Using Convolutional Neural Networks (CNN) for MRI and CT Data
+
+### Import Dataset
+
+from google.colab import files
+files.upload() #importing kaggle.json
+
+!mkdir -p ~/.kaggle
+!cp kaggle.json ~/.kaggle/
+!chmod 600 ~/.kaggle/kaggle.json
+#Downloading dataset
+!kaggle datasets download -d deeppythonist/brain-tumor-mri-dataset
+#Unzip
+!unzip brain-tumor-mri-dataset.zip
+
+### Import libraries
+
+import tensorflow as tf
+from tensorflow.keras import layers, models
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+
+### Load dataset
+
+train_dir = '/content/train'
+test_dir = '/content/test'
+img_size = 128
+batch_size = 32
+
+train_data = tf.keras.preprocessing.image_dataset_from_directory(
+train_dir,
+image_size=(img_size, img_size),
+batch_size=batch_size
+)
+
+test_data = tf.keras.preprocessing.image_dataset_from_directory(
+test_dir,
+image_size=(img_size, img_size),
+batch_size=batch_size
+)
+
+### Normalize data
+
+normalization_layer = layers.Rescaling(1./255)
+train_data = train_data.map(lambda x, y: (normalization_layer(x), y))
+test_data = test_data.map(lambda x, y: (normalization_layer(x), y))
+
+### Building CNN Model
+
+from tensorflow.keras import layers, models
+model = models.Sequential([
+layers.Conv2D(32, (3,3), activation='relu', input_shape=(128,128,3)),
+layers.MaxPooling2D(2,2),
+layers.Conv2D(64, (3,3), activation='relu'),
+layers.MaxPooling2D(2,2),
+layers.Conv2D(128, (3,3), activation='relu'),
+layers.MaxPooling2D(2,2),
+layers.Flatten(),
+layers.Dense(128, activation='relu'),
+layers.Dense(4, activation='softmax')
+])
+
+### Compiling CNN Model
+
+model.compile(
+optimizer='adam',
+loss='sparse_categorical_crossentropy',
+metrics=['accuracy']
+)
+
+### Training Model
+
+history = model.fit(train_data, epochs=10, validation_data=test_data)
+
+### Evaluate Model
+
+loss, accuracy = model.evaluate(test_data)
+print("Test Accuracy:", accuracy)
+print("Test Loss:", loss)
+
+plt.plot(history.history['accuracy'], label='Training Accuracy')
+plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
+
+plt.xlabel('Epochs')
+plt.ylabel('Accuracy')
+plt.title('Training vs Validation Accuracy')
+
+plt.legend()
+plt.grid(True)
+plt.show()
