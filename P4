@@ -1,0 +1,46 @@
+// Pin definitions
+#define sensorPin A0      // Flex sensor connected to A0
+#define PWMpin 6          // LED connected to PWM pin 6
+
+// Constants
+float VCC = 5.0;                 // Arduino supply voltage
+float R2 = 15000.0;             // 10K resistor
+float sensorMinResistance = 15000.0; // Resistance when flat
+float sensorMaxResistance = 175000.0; // Resistance when bent
+
+void setup() {
+  Serial.begin(9600);       // Start serial communication
+  pinMode(sensorPin, INPUT);
+  pinMode(PWMpin, OUTPUT);
+}
+
+void loop() {
+  // Read analog value
+  int ADCraw = analogRead(sensorPin);
+
+  // Convert to voltage
+  float ADCVoltage = (ADCraw * VCC) / 1023.0;
+
+  // Avoid division by zero
+  if (ADCVoltage == 0) {
+    ADCVoltage = 0.001;
+  }
+
+  // Calculate resistance
+  float Resistance = R2 * (VCC / ADCVoltage - 1);
+
+  // Map resistance to PWM (0–255)
+  int ReadValue = map(Resistance, sensorMinResistance, sensorMaxResistance, 0, 255);
+
+  // Keep value within limits
+  ReadValue = constrain(ReadValue, 0, 255);
+
+  // Output PWM to LED
+  analogWrite(PWMpin, ReadValue);
+
+  // Print value to Serial Monitor
+  Serial.print("PWM Value: ");
+  Serial.println(ReadValue);
+
+  delay(100);
+}
