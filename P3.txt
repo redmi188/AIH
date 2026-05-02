@@ -1,27 +1,14 @@
-int gsrPin = A0;
-int baseline = 0;
+int sensorPin = A1; 
+int sensorValue = 0;
 
 void setup() {
+  pinMode(sensorPin, INPUT);
   Serial.begin(115200);
-  Serial.println("Calibrating... Keep fingers steady");
-  calibrateBaseline();
-  Serial.print("Baseline: ");
-  Serial.println(baseline);
 }
 
 void loop() {
-  int gsrValue = analogRead(gsrPin);
-  Serial.print(gsrValue);   // Raw signal
-  Serial.print(",");
-  Serial.println(baseline); // Baseline
+  sensorValue = analogRead(sensorPin);
+  Serial.println(sensorValue);
+  
   delay(20);
-}
-
-void calibrateBaseline() {
-  long sum = 0;
-  for (int i = 0; i < 50; i++) {
-    sum += analogRead(gsrPin);
-    delay(50);
-  }
-  baseline = sum / 50;
 }
