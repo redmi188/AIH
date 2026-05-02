@@ -32,7 +32,9 @@ Obtain labeled medical image datasets related to cancer detection
 Data Preprocessing
 
 Resize images to a fixed dimension
+
 Normalize pixel values
+
 Apply augmentation techniques if required
 
 Model Selection
@@ -42,12 +44,15 @@ Choose a suitable pre-trained model (e.g., MobileNetV2, ResNet50)
 Transfer Learning
 
 Load pre-trained weights
+
 Freeze initial layers
+
 Replace final classification layers
 
 Model Training
 
 Train the model on the dataset
+
 Use appropriate loss function and optimizer
 
 Evaluation
