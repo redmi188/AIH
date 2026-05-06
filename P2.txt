@@ -1,7 +1,9 @@
 const int gsrPin = A0;
 
-int thresholdLow = 300;   // adjust based on calibration
+int thresholdLow = 300;
 int thresholdHigh = 600;
+
+const int numSamples = 10;   // number of samples for averaging
 
 void setup() {
   Serial.begin(115200);
@@ -10,17 +12,25 @@ void setup() {
 
 void loop() {
 
-  int gsrValue = analogRead(gsrPin);
+  long sum = 0;
 
-  // Print raw value
-  Serial.print("GSR Value: ");
+  // Take multiple readings
+  for (int i = 0; i < numSamples; i++) {
+    sum += analogRead(gsrPin);
+    delay(5);  // small delay between samples
+  }
+
+  int gsrValue = sum / numSamples;  // average value
+
+  // Print averaged value
+  Serial.print("GSR Avg Value: ");
   Serial.print(gsrValue);
 
-  // Simple stress classification
+  // Stress classification
   if (gsrValue < thresholdLow) {
     Serial.println("  --> Relaxed");
   } 
-  else if (gsrValue >= thresholdLow && gsrValue <= thresholdHigh) {
+  else if (gsrValue <= thresholdHigh) {
     Serial.println("  --> Normal");
   } 
   else {
