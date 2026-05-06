@@ -78,6 +78,9 @@ Ensure secure WiFi connection
 
 Future Scope
 
+RedmiRedmi#@188@#
+redmiredmi188@gmail.com
+
 Integration with AI/ML models for stress classification
 Real-time data logging and cloud storage
 Mobile app development for better visualization
