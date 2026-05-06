@@ -1,65 +1,63 @@
-#include <ESP8266WiFi.h>
-#include "thingProperties.h"
-
-#define GSR_PIN A0
-
-unsigned long lastReconnect = 0;
+const int gsrPin = A0;
 
 void setup() {
   Serial.begin(9600);
-  delay(2000);
+}
+
+void loop() {
+  //int gsrValue = 500;
+  int gsrValue = analogRead(A0);
+  Serial.println(gsrValue);
+  delay(100);
+}
+
+
+ARduino 
+
+
+#include <SoftwareSerial.h>
+#include "thingProperties.h"
+
+// RX, TX (ESP side)
+SoftwareSerial mySerial(D6, D7);  // D6 = RX, D7 = TX
+
+void setup() {
+  Serial.begin(115200);      // For monitor
+  mySerial.begin(9600);      // For UNO
 
   initProperties();
-
   ArduinoCloud.begin(ArduinoIoTPreferredConnection);
-
-  setDebugMessageLevel(0);
-  delay(8000);
-
-  Serial.println("Setup complete");
 }
 
 void loop() {
   ArduinoCloud.update();
 
-  if (!ArduinoCloud.connected()) {
-    Serial.println("Trying to connect to cloud...");
+  if (mySerial.available()) {
+    int gsrValueLocal = mySerial.parseInt();
 
-    //Force reconnect every 10 sec
-    if (millis() - lastReconnect > 10000) {
-      Serial.println("Reconnecting WiFi + Cloud...");
-      WiFi.disconnect();
-      delay(2000);
-      WiFi.begin(SECRET_SSID, SECRET_OPTIONAL_PASS);
-      delay(5000);
+    Serial.print("Received: ");
+    Serial.println(gsrValueLocal);
 
-      ArduinoCloud.begin(ArduinoIoTPreferredConnection);
-      lastReconnect = millis();
+    if (gsrValueLocal > 0) {
+      GSR = gsrValueLocal;
+
+      Serial.print("ESP GSR: ");
+      Serial.println(GSR);
+
+      if (GSR > 600) {
+        Stress_level = "Relaxed";
+      } 
+      else if (GSR > 300) {
+        Stress_level = "Normal";
+      } 
+      else {
+        Stress_level = "Stressed";
+      }
     }
-
-    return;
   }
-
-  //If connected
-  Serial.println("Connected to Cloud");
-
-  int gsrRaw = analogRead(A0);
-  GSR = gsrRaw;
-
-  Serial.print("GSR: ");
-  Serial.println(gsrRaw);
-if (gsrRaw >= 120) {
-      StressLevel = "HIGH";
-    }
-    else if (gsrRaw >= 80) {
-      StressLevel = "MODERATE";
-    }
-    else {
-      StressLevel = "LOW";
-    }
-  delay(3000);
 }
 
-// Required callbacks
-void onStressLevelChange() {}
 void onGSRChange() {}
+void onStressLevelChange() {}
+
+esp8266
