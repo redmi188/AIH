@@ -1,26 +1,34 @@
-// ECG Monitoring using AD8232
+const int ecgPin = A0;
+const int loPlus = 10;
+const int loMinus = 11;
 
-const int ecgPin = A0;   // Analog ECG output
-const int loPlus = 10;   // Leads-off detection +
-const int loMinus = 11;  // Leads-off detection -
+const int numSamples = 10;
 
 void setup() {
-  Serial.begin(9600);
-
+  Serial.begin(115200);
   pinMode(loPlus, INPUT);
   pinMode(loMinus, INPUT);
 }
 
 void loop() {
 
-  // Check if electrodes are connected
-  if ((digitalRead(loPlus) == 1) || (digitalRead(loMinus) == 1)) {
-    Serial.println("Leads off! Please check electrodes.");
-  } 
-  else {
-    int ecgValue = analogRead(ecgPin);
-    Serial.println(ecgValue);
+  // Check electrode connection
+  if (digitalRead(loPlus) == 1 || digitalRead(loMinus) == 1) {
+    Serial.println("Leads Off!");
+    return;
   }
 
-  delay(5);  // Sampling ~200 Hz
+  long sum = 0;
+
+  // Averaging for noise reduction
+  for (int i = 0; i < numSamples; i++) {
+    sum += analogRead(ecgPin);
+    delay(2);
+  }
+
+  int ecgValue = sum / numSamples;
+
+  Serial.println(ecgValue);
+
+  delay(5);  // ~200 Hz sampling
 }
